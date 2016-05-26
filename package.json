@@ -1,0 +1,23 @@
+{
+  "name": "qsticketepicmodule",
+  "version": "1.0.0",
+  "description": "Qlik Sense ticket api module for Epic user authentication.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "Jeffrey Goldberg",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.15.1",
+    "cookie-parser": "^1.4.2",
+    "express": "^4.13.4",
+    "express-session": "^1.13.0",
+    "extend": "^3.0.0",
+    "fs": "0.0.2",
+    "https": "^1.0.0",
+    "path": "^0.12.7",
+    "winston": "^2.2.0"
+  }
+}
