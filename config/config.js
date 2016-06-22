@@ -5,12 +5,15 @@ var certPath = 'C:/ProgramData/Qlik/Sense/Repository/Exported Certificates/.Loca
 var routePath = path.join(__dirname, 'server/routes/');
 var publicPath = path.join(__dirname, 'public/');
 var logPath = path.join(__dirname,'/../log/');
+var utilsPath = path.join(__dirname, '/../utils/');
 
 var logFile = logPath + 'qsticketepicmodule.log';
 
 var config = extend(true, {
     serverPort: 3001,
     qpsPort: 4243,
+    qrsPort: 4242,
+    repoAccount: 'UserDirectory=Internal;UserId=sa_repository',
     hostname: 'senseServerName',
     virtualProxy: 'epic',
     allowedConnections: 'domainOfEpicsystems',
@@ -26,6 +29,7 @@ var config = extend(true, {
     publicPath: publicPath,
     logPath: logPath,
     logFile: logFile,
+    utilsPath: utilsPath,
     logLevel: 'debug'
 });
 

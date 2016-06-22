@@ -22,6 +22,22 @@ router.use(function(req,res,next){
 	next();
 });
 
+router.route('/')
+.get(function(request, response)
+{
+    logger.info('Someone attempted to go to Qlik Sense first on this proxy', {module: 'routes.js.defaultRoute'});
+    res.set('Content-Type', 'text/html');
+    res.status(404).send('<h1>You have accessed this proxy improperly.</h1>');
+});
+
+router.route('/openDoc')
+.get(function(request, response)
+{
+    var docId = request.query.iDocID;
+    var redirectURI = 'https://' + config.hostname + '/' + config.virtualProxy + '/sense/app/' + docID;
+    response.redirect(redirectURI);
+});
+
 router.route('/login')
 .get(function(request, response)
 {

@@ -1,0 +1,3 @@
+BI_CONTENT_REDIR,RunParam:f2e14797-5b4e-4935-99d5-19f038e27151
+
+add /tlb flag to dll registration
