@@ -25,6 +25,8 @@ var config = extend(true, {
 		server_key: path.resolve(certPath, 'server_key.pem'),
 		root: path.resolve(certPath,'root.pem')
 	},
+    sharedSecret: 'secret',
+    handshake: 'secret',
     routePath: routePath,
     publicPath: publicPath,
     logPath: logPath,

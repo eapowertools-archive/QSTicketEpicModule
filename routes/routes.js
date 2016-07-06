@@ -6,6 +6,7 @@ var winston = require('winston');
 var config = require('../config/config');
 var fs = require('fs');
 var https= require('https');
+var cryptoJs = require("crypto-js");
 
 //set up logging
 var logger = new (winston.Logger)({
@@ -27,7 +28,7 @@ router.route('/')
 {
     logger.info('Someone attempted to go to Qlik Sense first on this proxy', {module: 'routes.js.defaultRoute'});
     res.set('Content-Type', 'text/html');
-    res.status(404).send('<h1>You have accessed this proxy improperly.</h1>');
+    res.status(403).send('<h1>You have accessed this proxy improperly.</h1>');
 });
 
 router.route('/openDoc')
@@ -42,13 +43,29 @@ router.route('/login')
 .get(function(request, response)
 {
     logger.debug('default route called', {module: 'routes.js.login'});
-    var selectedUser = request.query.userId;
+    var token = decodeURIComponent(request.query.token);
+    logger.debug('token supplied by dll:' + token, {module: 'routes.js.login'});
     var userDirectory = config.userDirectory;
-	
-    logger.info("Login user: " + selectedUser + ", Directory: " + userDirectory, 
-    {module: 'routes.js.login'});
 
-    requestticket(request, response, selectedUser, userDirectory);
+    var bytes  = CryptoJS.AES.decrypt(token, config.sharedSecret);
+    var decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+
+    var userId = decryptedData.split("|");
+
+    if(userId[1] === config.handshake)
+    {
+        logger.info("Login user: " + userId[0] + ", Directory: " + userDirectory, 
+        {module: 'routes.js.login'});
+
+        requestticket(request, response, userId[0], userDirectory);
+    }
+    else
+    {
+        logger.error('Failed. Incorrect Handshake');
+        logger.info('Someone attempted to go to Qlik Sense first on this proxy', {module: 'routes.js.defaultRoute'});
+        response.set('Content-Type', 'text/html');
+        response.status(403).send('<h1>You have accessed this proxy improperly.</h1>');
+    }
 });
 
 router.route('/logout')
