@@ -34,8 +34,8 @@ router.route('/')
 router.route('/openDoc')
 .get(function(request, response)
 {
-    var docId = request.query.iDocID;
-    var redirectURI = 'https://' + config.hostname + '/' + config.virtualProxy + '/sense/app/' + docID;
+    var docId = request.query.iDocId;
+    var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy + '/sense/app/' + docID;
     response.redirect(redirectURI);
 });
 
@@ -47,8 +47,8 @@ router.route('/login')
     logger.debug('token supplied by dll:' + token, {module: 'routes.js.login'});
     var userDirectory = config.userDirectory;
 
-    var bytes  = CryptoJS.AES.decrypt(token, config.sharedSecret);
-    var decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+    var bytes  = cryptoJs.AES.decrypt(token, config.sharedSecret);
+    var decryptedData = bytes.toString(cryptoJs.enc.Utf8);
 
     var userId = decryptedData.split("|");
 
@@ -92,9 +92,9 @@ function requestticket(req, res, selecteduser, userdirectory) {
     var XRFKEY = rand(16);
     
     var options = {
-        host: config.hostname,
+        host: config.proxyHostname,
         port: config.qpsPort,
-        path: 'https://' + config.hostname + ':' + config.qpsPort + '/qps/' 
+        path: 'https://' + config.proxyHostname + ':' + config.qpsPort + '/qps/' 
             + config.virtualProxy + '/ticket?xrfkey=' + XRFKEY,
         method: 'POST',
         headers: { 'X-qlik-xrfkey': XRFKEY, 'Content-Type': 'application/json' },
@@ -118,7 +118,7 @@ function requestticket(req, res, selecteduser, userdirectory) {
 			logger.debug("POST Response:" +  d.toString(), {module: 'routes.js.requestticket'});
 					
             var ticket = JSON.parse(d.toString());
-			var redirectURI = 'https://' + config.hostname + '/' + config.virtualProxy 
+			var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy 
                 + '/hub?qlikticket=' + ticket.Ticket; 
             
             logger.debug('redirecting to: ' + redirectURI, {module: 'routes.js.requestticket'});

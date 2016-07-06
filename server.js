@@ -38,11 +38,29 @@ app.use('/epic',epicRoutes);
 
 //Start the server
 
+//COMMENT OUT ONE OF THE FOLLOWING SECTIONS//
+/*************************************/
+//If using the Qlik Sense generated certs for server authentication from browsers, 
+//use this section.
 var httpsOptions = {
     cert: fs.readFileSync(config.certificates.server),
     key: fs.readFileSync(config.certificates.server_key)
 };
+/*************************************/
 
+/*************************************/
+//If using a third party certificate from a trusted certificate authority,
+//use this section to point to a server certificate
+/*
+var httpsOptions = {
+//    cert: fs.readFileSync(%PATH TO SERVER CERT IN PEM FORMAT%),
+//    key: fs.readFileSync(%PATH TO SERVER CERT PRIVATE KEY IN PEM FORMAT%)
+// OR IF USING PFX //
+//    pfx: fs.readFileSync(%PATH TO SERVER CERT IN PFX FORMAT WITH PRIVATE KEY%),
+//    passphrase: '%STRING representing password for pfx file%'
+};
+*/
+/*************************************/
 
 var server = https.createServer(httpsOptions, app);
 server.listen(port, function()
