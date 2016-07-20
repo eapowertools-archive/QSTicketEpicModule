@@ -30,18 +30,34 @@ To install the solution, navigate to here: [https://github.com/eapowertools/QSTi
   - __user directory:__ The name of the user directory users who will be accessing Qlik Sense through this authentication module are members of.
   - __shared secret:__ The shared secret is a value that corresponds with the key added to the configuration file of the [QlikSenseEpic2015DLL](https://github.com/eapowertools/QlikSenseEpic2015DLL).
   - __handshake:__ The handshake is a value stored inside of Epic Hyperspace in the BI configuration.  
-  After confirming the configuration information, Click Next to continue the installation.  
-![7](./doc/img/7.png)
+  After confirming the configuration information, Click Next to continue the installation.
+
+![7](./doc/img/7.png)  
 9. Confirm the location of the services.conf file in the Qlik Sense site and click Next.  
-![8](./doc/img/8.png)
+![8](./doc/img/8.png)  
 10. If the virtual proxy does not exist, the install will create a virtual proxy called Epic and confirm creation.  
-![9](./doc/img/9.png)
+![9](./doc/img/9.png)  
 11. The service dispatcher will be stopped.  
-![10](./doc/img/10.png)
+![10](./doc/img/10.png)  
 12. And restarted to start the QS Ticket Epic Module.  
-![11](./doc/img/11.png)
+![11](./doc/img/11.png)  
 13. At this point the installation is complete.  Click Finish to exit the installer.  
 
+##Appendix A
+In the event a third party certificate is installed for Qlik Sense communication, it is necessary to use that certificate for QS Ticket Epic Module communication as well.
+
+###Requirements
+- A third party certificate file in PEM file format and a private key for the certificate in PEM file format OR
+- A third party certificate file in PFX file format with the private key attached to the certificate.
+
+###Instructions
 
 ![12](./doc/img/12.png)
-![13](./doc/img/13.png)
+1. Navigate to the folder where QS Ticket Epic Module is installed.  
+2. Open a text editor as an administrator and then open the file named server.js.  
+
+![13](./doc/img/13.png)  
+3. Inside the server.js file, scroll to the section regarding certificates.  Based on the certificate files in possession, comment the first section referencing httpsOptions and the certificate files to be read.  
+
+4. Uncomment the httpsOptions section and appropriate lines for the certificate files that will be used to secure communication to QS Ticket Epic Module.  The format of the path must be in this format: `c:/program files/%pathToMyCerts%/cert.pem` where __%pathToMyCerts%__ is the fully qualified path to the certificate file.  Be certain to use forward slashes when typing in the path.
+
