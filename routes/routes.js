@@ -35,7 +35,7 @@ router.route('/openDoc')
 .get(function(request, response)
 {
     var docId = request.query.iDocId;
-    var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy + '/sense/app/' + docID;
+    var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy + '/sense/app/' + docId;
     response.redirect(redirectURI);
 });
 
