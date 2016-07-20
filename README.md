@@ -58,6 +58,5 @@ In the event a third party certificate is installed for Qlik Sense communication
 
 ![13](./doc/img/13.png)  
 3. Inside the server.js file, scroll to the section regarding certificates.  Based on the certificate files in possession, comment the first section referencing httpsOptions and the certificate files to be read.  
-
 4. Uncomment the httpsOptions section and appropriate lines for the certificate files that will be used to secure communication to QS Ticket Epic Module.  The format of the path must be in this format: `c:/program files/%pathToMyCerts%/cert.pem` where __%pathToMyCerts%__ is the fully qualified path to the certificate file.  Be certain to use forward slashes when typing in the path.
 
