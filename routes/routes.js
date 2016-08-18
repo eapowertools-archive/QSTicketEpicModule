@@ -31,6 +31,72 @@ router.route('/')
     res.status(403).send('<h1>You have accessed this proxy improperly.</h1>');
 });
 
+router.param('path', function(req, res, next, id)
+{
+    console.log(req.path);
+    next();
+});
+
+router.route('/iframe')
+.get(function(request, response)
+{
+    //acceptable path querystring parameters
+    //path = the path to redirect to (needs to be urlencoded so that querystring params for single objects may be passed)
+    //token = the token from Epic dll
+
+    var path = request.query.path;
+
+    //Decrypt token
+    var iv = cryptoJs.enc.Hex.parse('00000000000000000000000000000000');
+    var token = decodeURIComponent(request.query.token);
+    var bytes = cryptoJs.AES.decrypt(token.toString(), cryptoJs.enc.Utf8.parse(config.sharedSecret), { iv : iv } );
+    var decryptedData = bytes.toString(cryptoJs,enc.Utf8);
+
+    //getdecrypted items: userid, handshake, and timestamp
+    var decryptedItems = decryptedData.split("|");
+    var userId = decryptedItems[0];
+    var handshake = decryptedItems[1];
+    var timestamp = decryptedItems[2];
+
+    var userDirectory = config.userDirectory;
+
+    logger.debug('token supplied by epic:' + token, {module: 'routes.js.iframe'});
+
+    //check the handshake
+
+    //check the timestamp
+    var nowDate = new Date().getTime();
+    var tokenDate = new Date(timestamp).getTime();
+    var elapsedTime = tokenDate - nowDate;
+
+    if(elapsedTime < 60001 && handshake === config.handshake)
+    {
+        //good to go
+        logger.info("Login user: " + userId + ", Directory: " + userDirectory, 
+        {module: 'routes.js.iframe'});
+
+        requestticket(request, response, userId, userDirectory, '/hub/');
+    }
+    else if(elapsedTime > 60000 && handshake !== config.handshake)
+    {
+        //failed because of time and handshake
+        logger.error('Authentication failed: incorrect handshake and expired token', {module: 'routes.js.iframe'});
+        response.status(403).send('<h1>You have accessed this proxy improperly.  Incorrect Handshake AND Expired Token.</h1>');
+    }
+    else if(elapsedTime > 60000 && handshake === config.handshake)
+    {
+        //failed because of time
+        logger.error('Authentication failed: expired token', {module: 'routes.js.iframe'});
+        response.status(403).send('<h1>You have accessed this proxy improperly.  Expired Token.</h1>');
+    }
+    else if(elapsedTime < 60001 && handshake !== config.handshake)
+    {
+        //failed because of handshake
+        logger.error('Authentication failed: incorrect handshake', {module: 'routes.js.iframe'});
+        response.status(403).send('<h1>You have accessed this proxy improperly.  Incorrect Handshake.</h1>');
+    }
+});
+
 router.route('/openDoc')
 .get(function(request, response)
 {
@@ -57,7 +123,7 @@ router.route('/login')
         logger.info("Login user: " + userId[0] + ", Directory: " + userDirectory, 
         {module: 'routes.js.login'});
 
-        requestticket(request, response, userId[0], userDirectory);
+        requestticket(request, response, userId[0], userDirectory, '/hub/');
     }
     else
     {
@@ -86,7 +152,7 @@ function rand(length, current) {
   return length ? rand(--length, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz".charAt(Math.floor(Math.random() * 60)) + current) : current;
 }
 
-function requestticket(req, res, selecteduser, userdirectory) {
+function requestticket(req, res, selecteduser, userdirectory, destPath) {
     //Configure parameters for the ticket request
     
     var XRFKEY = rand(16);
@@ -119,7 +185,7 @@ function requestticket(req, res, selecteduser, userdirectory) {
 					
             var ticket = JSON.parse(d.toString());
 			var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy 
-                + '/hub?qlikticket=' + ticket.Ticket; 
+                + destPath + '?qlikticket=' + ticket.Ticket; 
             
             logger.debug('redirecting to: ' + redirectURI, {module: 'routes.js.requestticket'});
             res.redirect(redirectURI);

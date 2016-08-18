@@ -3,6 +3,7 @@ process.env.NODE_PATH= __dirname;
 var express = require('express');
 var app = express();
 var bodyParser = require('body-parser');
+var cookieParser = require('cookie-parser');
 var winston = require('winston');
 var config = require('./config/config');
 var https = require('https');
@@ -21,10 +22,11 @@ logger.info('Firing up the QS ticket Epic Module',{module:'server'});
 
 app.use(bodyParser.urlencoded({extended: true}));
 app.use(bodyParser.json());
+app.use(cookieParser());
 
 logger.info('Setting port',{module:'server'});
 
-var port = config.port || 3001;
+var port = config.serverPort || 3001;
 
 logger.info('Setting route',{module:'server'});
 
