@@ -50,7 +50,7 @@ router.route('/iframe')
     var iv = cryptoJs.enc.Hex.parse('00000000000000000000000000000000');
     var token = decodeURIComponent(request.query.token);
     var bytes = cryptoJs.AES.decrypt(token.toString(), cryptoJs.enc.Utf8.parse(config.sharedSecret), { iv : iv } );
-    var decryptedData = bytes.toString(cryptoJs,enc.Utf8);
+    var decryptedData = bytes.toString(cryptoJs.enc.Utf8);
 
     //getdecrypted items: userid, handshake, and timestamp
     var decryptedItems = decryptedData.split("|");
