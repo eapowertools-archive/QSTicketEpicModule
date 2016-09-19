@@ -84,7 +84,7 @@ router.route('/iframe')
 router.route('/openDoc')
 .get(function(request, response)
 {
-    var docId = request.query.iDocId;
+    var docId = request.query.iDocID;
     var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy + '/sense/app/' + docId;
     response.redirect(redirectURI);
 });
