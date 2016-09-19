@@ -40,62 +40,46 @@ router.param('path', function(req, res, next, id)
 router.route('/iframe')
 .get(function(request, response)
 {
-    //acceptable path querystring parameters
-    //path = the path to redirect to (needs to be urlencoded so that querystring params for single objects may be passed)
-    //token = the token from Epic dll
+    // Acceptable path querystring parameters
+    //  path = the path to redirect to (needs to be urlencoded so that querystring params for single objects may be passed)
+    //  token = the token from Epic dll
 
-    var path = request.query.path;
+    var path = buildPath(request.query);
+    var userDirectory = config.userDirectory;
 
-    //Decrypt token
+    // Decrypt token
     var iv = cryptoJs.enc.Hex.parse('00000000000000000000000000000000');
     var token = decodeURIComponent(request.query.token);
-    var bytes = cryptoJs.AES.decrypt(token.toString(), cryptoJs.enc.Utf8.parse(config.sharedSecret), { iv : iv } );
+                logger.debug(token, {module: 'routes.js.iframe'});
+                
+                // Decrypt needs a word array for the key; parse() does the job here
+    var bytes = cryptoJs.AES.decrypt(token, cryptoJs.enc.Utf8.parse(config.sharedSecret), { iv : iv } );    
     var decryptedData = bytes.toString(cryptoJs.enc.Utf8);
 
-    //getdecrypted items: userid, handshake, and timestamp
+    // Get decrypted items: userid, handshake, and timestamp
     var decryptedItems = decryptedData.split("|");
     var userId = decryptedItems[0];
     var handshake = decryptedItems[1];
-    var timestamp = decryptedItems[2];
-
-    var userDirectory = config.userDirectory;
-
     logger.debug('token supplied by epic:' + token, {module: 'routes.js.iframe'});
 
     //check the handshake
-
-    //check the timestamp
-    var nowDate = new Date().getTime();
-    var tokenDate = new Date(timestamp).getTime();
-    var elapsedTime = tokenDate - nowDate;
-
-    if(elapsedTime < 60001 && handshake === config.handshake)
+    if ( handshake === config.handshake )
     {
-        //good to go
-        logger.info("Login user: " + userId + ", Directory: " + userDirectory, 
-        {module: 'routes.js.iframe'});
-
-        requestticket(request, response, userId, userDirectory, '/hub/');
+            //good to go
+            logger.info("Login user: " + userId + ", Directory: " + userDirectory, 
+            {module: 'routes.js.iframe'});
+    
+            //requestticket(request, response, userId, userDirectory, '/hub/');
+            requestticket(request, response, userId, userDirectory, path);
     }
-    else if(elapsedTime > 60000 && handshake !== config.handshake)
+    else
     {
-        //failed because of time and handshake
-        logger.error('Authentication failed: incorrect handshake and expired token', {module: 'routes.js.iframe'});
-        response.status(403).send('<h1>You have accessed this proxy improperly.  Incorrect Handshake AND Expired Token.</h1>');
-    }
-    else if(elapsedTime > 60000 && handshake === config.handshake)
-    {
-        //failed because of time
-        logger.error('Authentication failed: expired token', {module: 'routes.js.iframe'});
-        response.status(403).send('<h1>You have accessed this proxy improperly.  Expired Token.</h1>');
-    }
-    else if(elapsedTime < 60001 && handshake !== config.handshake)
-    {
-        //failed because of handshake
-        logger.error('Authentication failed: incorrect handshake', {module: 'routes.js.iframe'});
-        response.status(403).send('<h1>You have accessed this proxy improperly.  Incorrect Handshake.</h1>');
-    }
+            //failed because of time and handshake
+            logger.error('Authentication failed: incorrect handshake.', {module: 'routes.js.iframe'});
+            response.status(403).send('<h1>You have accessed this proxy improperly. Incorrect Handshake.</h1>');
+    }              
 });
+
 
 router.route('/openDoc')
 .get(function(request, response)
@@ -182,10 +166,12 @@ function requestticket(req, res, selecteduser, userdirectory, destPath) {
             //Parse ticket response
             logger.debug(selecteduser +  " is logged in", {module: 'routes.js.requestticket'});
 			logger.debug("POST Response:" +  d.toString(), {module: 'routes.js.requestticket'});
+
+
 					
             var ticket = JSON.parse(d.toString());
 			var redirectURI = 'https://' + config.destinationHostname + '/' + config.virtualProxy 
-                + destPath + '?qlikticket=' + ticket.Ticket; 
+                + destPath + (destPath.includes("?") ? "&" : "?") + 'qlikticket=' + ticket.Ticket; 
             
             logger.debug('redirecting to: ' + redirectURI, {module: 'routes.js.requestticket'});
             res.redirect(redirectURI);
@@ -204,3 +190,47 @@ function requestticket(req, res, selecteduser, userdirectory, destPath) {
 }
 
 module.exports = router;
+
+
+function buildPath(queryParams)
+{
+    var path;
+    var pathArr = []
+    for(var propName in queryParams)
+    {
+        if (queryParams.hasOwnProperty(propName))
+        {
+            if(propName == 'token')
+            {
+                //do nothing
+            }
+            else if(propName == 'path')
+            {
+                pathArr.unshift(propName + "=" + queryParams[propName]);
+            }
+            else
+            {
+                pathArr.push(propName + "=" + queryParams[propName]);
+            }
+        }
+    }
+    
+    pathArr.forEach(function(item,index)
+    {
+        if(index==0)
+        {
+            var splitPath;
+            splitPath = item.split("=");
+            path = "/" + splitPath[1];
+        }
+        else if(index==1)
+        {
+            path += "?" + item;
+        }
+        else
+        {
+            path += "&" + item;
+        }
+    })
+    return path;
+}
