@@ -1,5 +1,5 @@
 process.env.NODE_PATH= __dirname;
-var qrsInteract = require('../lib/qrsinteractions');
+var qrsInteract = require('qrs-interact');
 var config = require('../config/config');
 var winston = require('winston');
 var Promise = require('bluebird');
@@ -7,12 +7,19 @@ var fs = require('fs');
 
 //set up logging
 var logger = new (winston.Logger)({
-	level: config.logLevel,
+	level: config.logging.logLevel,
 	transports: [
       new (winston.transports.Console)(),
-      new (winston.transports.File)({ filename: config.logFile})
+      new (winston.transports.File)({ filename: config.logging.logFile})
     ]
 });
+
+var qrsConfig = {
+    hostname: config.qrs.hostname,
+    localCertPath: config.certificates.certPath
+};
+
+var qrs = new qrsInteract(qrsConfig);
 
 process.argv.forEach(function (val, index, array) {
   console.log(index + ': ' + val);
@@ -20,10 +27,10 @@ process.argv.forEach(function (val, index, array) {
 
 logger.info('Checking for existence of virtual proxy prefix ' + process.argv[4] + ' on ' + process.argv[2] + ' on port ' + process.argv[3], {module: 'checkVPExist.js'});
 
-var path = "https://" + process.argv[2] + ":" + process.argv[3] + "/qrs/virtualProxyConfig/full";
+var path = "virtualProxyConfig/full";
     path +=  "?xrfkey=ABCDEFG123456789&filter=prefix eq '" + process.argv[4] + "'";
 
-qrsInteract.get(path)
+qrs.Get(path)
 .then(function(result)
 {
     if(JSON.stringify(result)=='[]')
@@ -33,7 +40,7 @@ qrsInteract.get(path)
     }
     else
     {
-        fs.writeFileSync(config.utilsPath + '/checkVPExist.txt', 'true');    
+        fs.writeFileSync(config.thisServer.utilsPath + '/checkVPExist.txt', 'true');    
     }
 })
 .catch(function(error)

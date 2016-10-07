@@ -1,33 +1,40 @@
 
-var qrsInteract = require('../lib/qrsinteractions');
+var qrsInteract = require('qrs-interact');
 var config = require('../config/config');
 var winston = require('winston');
 var Promise = require('bluebird');
 
 //set up logging
 var logger = new (winston.Logger)({
-	level: config.logLevel,
+	level: config.logging.logLevel,
 	transports: [
       new (winston.transports.Console)(),
-      new (winston.transports.File)({ filename: config.logFile})
+      new (winston.transports.File)({ filename: config.logging.logFile})
     ]
 });
 
+var qrsConfig = {
+    hostname: config.qrs.hostname,
+    localCertPath: config.certificates.certPath
+};
+
+var qrs = new qrsInteract(qrsConfig);
+
 var body = {
-    "prefix": config.virtualProxy,
-    "description": config.virtualProxy,
-    "authenticationModuleRedirectUri":"https://" + config.hostname + ":" + config.serverPort + "/",
+    "prefix": config.proxy.virtualProxy,
+    "description": config.proxy.virtualProxy,
+    "authenticationModuleRedirectUri":"https://" + config.thisServer.hostname + ":" + config.thisServer.port + "/",
     "sessionModuleBaseUri":"",
     "loadBalancingModuleBaseUri":"",
     "authenticationMethod":0,
     "anonymousAccessMode":0,
     "windowsAuthenticationEnabledDevicePattern":"Windows",
-    "sessionCookieHeaderName":"X-Qlik-Session-" + config.virtualProxy,
+    "sessionCookieHeaderName":"X-Qlik-Session-" + config.proxy.virtualProxy,
     "sessionCookieDomain":"",
     "additionalResponseHeaders":"",
     "sessionInactivityTimeout":30,
     "extendedSecurityEnvironment":false,
-    "websocketCrossOriginWhiteList":[config.hostname],
+    "websocketCrossOriginWhiteList":[config.thisServer.hostname],
     "defaultVirtualProxy":false,
     "tags":[]
 };
@@ -37,9 +44,9 @@ var body = {
 function createVirtualProxy(body)
 {
     var x ={};
-    var path = "https://" + config.hostname + ":" + config.qrsPort + "/qrs/servernodeconfiguration";
+    var path = "servernodeconfiguration";
     path +=  "?xrfkey=ABCDEFG123456789&filter=name eq 'Central'";
-    qrsInteract.get(path)
+    qrs.Get(path)
     .then(function(result)
     {
        logger.info('servicenodeconfiguration: ' + JSON.stringify(result), {module:'createVirtualProxy'}); 
@@ -49,7 +56,7 @@ function createVirtualProxy(body)
     {
        
         logger.info('passed result id: '+ result, {module: 'createVirtualProxy'});
-        var postPath =  "https://" + config.hostname + ":" + config.qrsPort + "/qrs/VirtualProxyConfig";
+        var postPath =  "VirtualProxyConfig";
         postPath +=  "?xrfkey=ABCDEFG123456789&privileges=true";
 
         if(result !== undefined)
@@ -62,7 +69,7 @@ function createVirtualProxy(body)
             ];
         }
 
-        qrsInteract.post(postPath,body)
+        qrs.Post(postPath,body)
         .then(function(result)
         {
             x.virtualProxy = JSON.parse(result);
@@ -74,10 +81,10 @@ function createVirtualProxy(body)
         .then(function()
         {
             //get the proxy to set link up virtualproxy
-            var proxyPath = "https://" + config.hostname + ":" + config.qrsPort + "/qrs/proxyservice/local";
+            var proxyPath = "proxyservice/local";
             proxyPath +=  "?xrfkey=ABCDEFG123456789";
             logger.debug('proxyPath:: ' + proxyPath,{module: 'createVirtualProxy'});
-            qrsInteract.get(proxyPath)
+            qrs.Get(proxyPath)
             .then(function(result)
             {
                 x.proxyID = result.id;
@@ -86,7 +93,7 @@ function createVirtualProxy(body)
             })
             .then(function(proxyID)
             {
-                var selectionPath = "https://" + config.hostname + ":" + config.qrsPort + "/qrs/selection";
+                var selectionPath = "selection";
                 selectionPath +=  "?xrfkey=ABCDEFG123456789";
                 logger.debug('selectionPath::' + selectionPath, {module: 'createVirtualProxy'});
                 var selectionBody = {
@@ -98,7 +105,7 @@ function createVirtualProxy(body)
                     ]
                 };
                 logger.debug('selectionBody:' + JSON.stringify(selectionBody), {module: 'createVirtualProxy'});
-                qrsInteract.post(selectionPath,selectionBody)
+                qrs.Post(selectionPath,selectionBody)
                 .then(function(result)
                 {
                     x.Selection = JSON.parse(result);
@@ -107,7 +114,7 @@ function createVirtualProxy(body)
                 })
                 .then(function(selectionID)
                 {
-                    var putPath = "https://" + config.hostname + ":" + config.qrsPort + "/qrs/selection";
+                    var putPath = "selection";
                     putPath += "/" + selectionID + "/ProxyService/synthetic";
                     putPath +=  "?xrfkey=ABCDEFG123456789";
                     logger.debug('putPath::' + putPath, {module: 'createVirtualProxy'});
@@ -140,7 +147,7 @@ function createVirtualProxy(body)
                             }],
                         "latestModifiedDate": buildModDate()      
                     };
-                    qrsInteract.put(putPath,putBody)
+                    qrs.Put(putPath,putBody)
                     .then(function()
                     {
                         logger.info('virtual proxy: ' + x.virtualProxy.id+ ' linked to proxy: ' + x.proxyID, {module: 'createVirtualProxy'});
