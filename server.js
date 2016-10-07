@@ -10,10 +10,10 @@ var fs = require('fs');
 
 //set up logging
 var logger = new (winston.Logger)({
-	level: config.logLevel,
+	level: config.logging.logLevel,
 	transports: [
       new (winston.transports.Console)(),
-      new (winston.transports.File)({ filename: config.logFile})
+      new (winston.transports.File)({ filename: config.logging.logFile})
     ]
 });
 
@@ -24,7 +24,7 @@ app.use(bodyParser.json());
 
 logger.info('Setting port',{module:'server'});
 
-var port = config.port || 3001;
+var port = config.thisServer.port || 3001;
 
 logger.info('Setting route',{module:'server'});
 
@@ -36,31 +36,32 @@ var epicRoutes = require('./routes/routes');
 //all routes will be prefixed with api
 app.use('/epic',epicRoutes);
 
+var httpsOptions = {}
+
+  if(config.thisServer.hasOwnProperty("certificates"))
+  {
+      if(config.thisServer.certificates.server !== undefined)
+      {
+        //pem files in use
+        httpsOptions.cert = fs.readFileSync(config.thisServer.certificates.server);
+        httpsOptions.key = fs.readFileSync(config.thisServer.certificates.server_key);
+      }
+
+      if(config.thisServer.certificates.pfx !== undefined)
+      {
+        httpsOptions.pfx = fs.readFileSync(config.thisServer.certificates.pfx);
+        httpsOptions.passphrase = config.thisServer.certificates.passphrase;
+      }
+  }
+  else
+  {
+    httpsOptions.cert = fs.readFileSync(config.certificates.server),
+    httpsOptions.key = fs.readFileSync(config.certificates.server_key)
+  }
+
+
 //Start the server
 
-//COMMENT OUT ONE OF THE FOLLOWING SECTIONS//
-/*************************************/
-//If using the Qlik Sense generated certs for server authentication from browsers, 
-//use this section.
-var httpsOptions = {
-    cert: fs.readFileSync(config.certificates.server),
-    key: fs.readFileSync(config.certificates.server_key)
-};
-/*************************************/
-
-/*************************************/
-//If using a third party certificate from a trusted certificate authority,
-//use this section to point to a server certificate
-/*
-var httpsOptions = {
-//    cert: fs.readFileSync(%PATH TO SERVER CERT IN PEM FORMAT%),
-//    key: fs.readFileSync(%PATH TO SERVER CERT PRIVATE KEY IN PEM FORMAT%)
-// OR IF USING PFX //
-//    pfx: fs.readFileSync(%PATH TO SERVER CERT IN PFX FORMAT WITH PRIVATE KEY%),
-//    passphrase: '%STRING representing password for pfx file%'
-};
-*/
-/*************************************/
 
 var server = https.createServer(httpsOptions, app);
 server.listen(port, function()
