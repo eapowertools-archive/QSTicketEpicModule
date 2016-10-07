@@ -13,7 +13,7 @@ dir.forEach(function(file)
     }
 });
 
-var certPath = 'C:/ProgramData/Qlik/Sense/Repository/Exported Certificates/.Local Certificates';
+var certPath =  'F:/My Documents/_Git/QSTicketEpicModule/certs'; //'C:/ProgramData/Qlik/Sense/Repository/Exported Certificates/.Local Certificates';
 var routePath = path.join(__dirname, 'server/routes/');
 var publicPath = path.join(__dirname, 'public/');
 var logPath = path.join(__dirname,'/../log/');

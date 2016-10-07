@@ -31,10 +31,60 @@ router.route('/')
     res.status(403).send('<h1>You have accessed this proxy improperly.</h1>');
 });
 
+router.param('path', function(req, res, next, id)
+{
+    console.log(req.path);
+    next();
+});
+
+router.route('/iframe')
+.get(function(request, response)
+{
+    // Acceptable path querystring parameters
+    //  path = the path to redirect to (needs to be urlencoded so that querystring params for single objects may be passed)
+    //  token = the token from Epic dll
+
+    var path = buildPath(request.query);
+    var userDirectory = config.userDirectory;
+
+    // Decrypt token
+    var iv = cryptoJs.enc.Hex.parse('00000000000000000000000000000000');
+    var token = decodeURIComponent(request.query.token);
+                logger.debug(token, {module: 'routes.js.iframe'});
+                
+                // Decrypt needs a word array for the key; parse() does the job here
+    var bytes = cryptoJs.AES.decrypt(token, cryptoJs.enc.Utf8.parse(config.sharedSecret), { iv : iv } );    
+    var decryptedData = bytes.toString(cryptoJs.enc.Utf8);
+
+    // Get decrypted items: userid, handshake, and timestamp
+    var decryptedItems = decryptedData.split("|");
+    var userId = decryptedItems[0];
+    var handshake = decryptedItems[1];
+    logger.debug('token supplied by epic:' + token, {module: 'routes.js.iframe'});
+
+    //check the handshake
+    if ( handshake === config.handshake )
+    {
+            //good to go
+            logger.info("Login user: " + userId + ", Directory: " + userDirectory, 
+            {module: 'routes.js.iframe'});
+    
+            //requestticket(request, response, userId, userDirectory, '/hub/');
+            requestticket(request, response, userId, userDirectory, path);
+    }
+    else
+    {
+            //failed because of time and handshake
+            logger.error('Authentication failed: incorrect handshake.', {module: 'routes.js.iframe'});
+            response.status(403).send('<h1>You have accessed this proxy improperly. Incorrect Handshake.</h1>');
+    }              
+});
+
+
 router.route('/openDoc')
 .get(function(request, response)
 {
-    var docId = request.query.iDocId;
+    var docId = request.query.iDocID;
     var redirectURI = 'https://' + config.thisServer.hostname + '/' + config.proxy.virtualProxy + '/sense/app/' + docId;
     response.redirect(redirectURI);
 });
@@ -57,7 +107,7 @@ router.route('/login')
         logger.info("Login user: " + userId[0] + ", Directory: " + userDirectory, 
         {module: 'routes.js.login'});
 
-        requestticket(request, response, userId[0], userDirectory);
+        requestticket(request, response, userId[0], userDirectory, '/hub/');
     }
     else
     {
@@ -86,7 +136,7 @@ function rand(length, current) {
   return length ? rand(--length, "0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz".charAt(Math.floor(Math.random() * 60)) + current) : current;
 }
 
-function requestticket(req, res, selecteduser, userdirectory) {
+function requestticket(req, res, selecteduser, userdirectory, destPath) {
     //Configure parameters for the ticket request
     
     var XRFKEY = rand(16);
@@ -116,10 +166,12 @@ function requestticket(req, res, selecteduser, userdirectory) {
             //Parse ticket response
             logger.debug(selecteduser +  " is logged in", {module: 'routes.js.requestticket'});
 			logger.debug("POST Response:" +  d.toString(), {module: 'routes.js.requestticket'});
+
+
 					
             var ticket = JSON.parse(d.toString());
 			var redirectURI = 'https://' + config.thisServer.hostname + '/' + config.proxy.virtualProxy 
-                + '/hub?qlikticket=' + ticket.Ticket; 
+                + destPath + (destPath.includes("?") ? "&" : "?") + 'qlikticket=' + ticket.Ticket; 
             
             logger.debug('redirecting to: ' + redirectURI, {module: 'routes.js.requestticket'});
             res.redirect(redirectURI);
@@ -138,3 +190,47 @@ function requestticket(req, res, selecteduser, userdirectory) {
 }
 
 module.exports = router;
+
+
+function buildPath(queryParams)
+{
+    var path;
+    var pathArr = []
+    for(var propName in queryParams)
+    {
+        if (queryParams.hasOwnProperty(propName))
+        {
+            if(propName == 'token')
+            {
+                //do nothing
+            }
+            else if(propName == 'path')
+            {
+                pathArr.unshift(propName + "=" + queryParams[propName]);
+            }
+            else
+            {
+                pathArr.push(propName + "=" + queryParams[propName]);
+            }
+        }
+    }
+    
+    pathArr.forEach(function(item,index)
+    {
+        if(index==0)
+        {
+            var splitPath;
+            splitPath = item.split("=");
+            path = "/" + splitPath[1];
+        }
+        else if(index==1)
+        {
+            path += "?" + item;
+        }
+        else
+        {
+            path += "&" + item;
+        }
+    })
+    return path;
+}
