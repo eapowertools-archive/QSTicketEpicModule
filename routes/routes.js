@@ -27,8 +27,26 @@ router.route('/')
 .get(function(request, response)
 {
     logger.info('Someone attempted to go to Qlik Sense first on this proxy', {module: 'routes.js.defaultRoute'});
-    res.set('Content-Type', 'text/html');
-    res.status(403).send('<h1>You have accessed this proxy improperly.</h1>');
+    response.set('Content-Type', 'text/html');
+    response.status(403).send('<h1>You have accessed this proxy improperly.</h1>');
+});
+
+router.route('/test')
+.get(function(request,response)
+{
+    logger.info('Someone accessed the QSTicketEpicModule test page', {module: 'routes.js.testRoute'});
+    response.set('Content-Type', 'text/html');
+    var html="<h1>Qlik Sense Ticketing Module for Epic Hyperspace test page.</h1>";
+    html += "<p>This is a test page for confirming the service is running</p>";
+    html += "<p>Send a query string along with this path to test the reformatting of the path for use in Epic HTML Web Components.</p>";
+
+    if(request.query !== null)
+    {
+        var path = buildPath(request.query);
+        html += "<h3>Resulting path from query string params:</h3>";
+        html += "<strong>" + path + "</strong>";
+    }
+    response.status(200).send(html);
 });
 
 router.param('path', function(req, res, next, id)
@@ -45,7 +63,7 @@ router.route('/iframe')
     //  token = the token from Epic dll
 
     var path = buildPath(request.query);
-    var userDirectory = config.userDirectory;
+    var userDirectory = config.thisServer.userDirectory;
 
     // Decrypt token
     var iv = cryptoJs.enc.Hex.parse('00000000000000000000000000000000');
@@ -53,7 +71,7 @@ router.route('/iframe')
                 logger.debug(token, {module: 'routes.js.iframe'});
                 
                 // Decrypt needs a word array for the key; parse() does the job here
-    var bytes = cryptoJs.AES.decrypt(token, cryptoJs.enc.Utf8.parse(config.sharedSecret), { iv : iv } );    
+    var bytes = cryptoJs.AES.decrypt(token, cryptoJs.enc.Utf8.parse(config.thisServer.sharedSecret), { iv : iv } );    
     var decryptedData = bytes.toString(cryptoJs.enc.Utf8);
 
     // Get decrypted items: userid, handshake, and timestamp
@@ -63,7 +81,7 @@ router.route('/iframe')
     logger.debug('token supplied by epic:' + token, {module: 'routes.js.iframe'});
 
     //check the handshake
-    if ( handshake === config.handshake )
+    if ( handshake === config.thisServer.handshake )
     {
             //good to go
             logger.info("Login user: " + userId + ", Directory: " + userDirectory, 
@@ -194,8 +212,11 @@ module.exports = router;
 
 function buildPath(queryParams)
 {
+
+    //path=single/?appid=831bc2ea-a43b-46f7-9ad2-d843cb9c4764&obj=tmaqpf&opt=nointeraction&select=clearall
     var path;
     var pathArr = []
+    console.log(queryParams);
     for(var propName in queryParams)
     {
         if (queryParams.hasOwnProperty(propName))
@@ -206,26 +227,32 @@ function buildPath(queryParams)
             }
             else if(propName == 'path')
             {
+                console.log(propName + ":" + queryParams[propName]);
                 pathArr.unshift(propName + "=" + queryParams[propName]);
+
             }
             else
             {
+                console.log(propName + ":" + queryParams[propName]);
                 pathArr.push(propName + "=" + queryParams[propName]);
             }
         }
     }
-    
+    console.log(pathArr);
     pathArr.forEach(function(item,index)
     {
         if(index==0)
         {
             var splitPath;
             splitPath = item.split("=");
-            path = "/" + splitPath[1];
-        }
-        else if(index==1)
-        {
-            path += "?" + item;
+            if(splitPath.length ==3)
+            {
+            path = "/" + splitPath[1] + "=" + splitPath[2];
+            }
+            else
+            {
+                path = "/" + splitPath[1];
+            }
         }
         else
         {
