@@ -68,5 +68,5 @@ var httpsOptions = {}
 var server = https.createServer(httpsOptions, app);
 server.listen(port, function()
 {
-    logger.info('qsticketepicmodule started',{module:'server'});
+    logger.info('qsticketepicmodule started on port: ' + port,{module:'server'});
 });
