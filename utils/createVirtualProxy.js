@@ -6,7 +6,7 @@ var Promise = require('bluebird');
 
 //set up logging
 var logger = new (winston.Logger)({
-	level: config.logging.logLevel,
+	level: 'debug',
 	transports: [
       new (winston.transports.Console)(),
       new (winston.transports.File)({ filename: config.logging.logFile})
@@ -45,19 +45,19 @@ function createVirtualProxy(body)
 {
     var x ={};
     var path = "servernodeconfiguration";
-    path +=  "?xrfkey=ABCDEFG123456789&filter=name eq 'Central'";
+    path +=  "?filter=name eq 'Central'";
     qrs.Get(path)
     .then(function(result)
     {
        logger.info('servicenodeconfiguration: ' + JSON.stringify(result), {module:'createVirtualProxy'}); 
-       return result[0].id; 
+       return result.body[0].id; 
     })
     .then(function(result)
     {
        
         logger.info('passed result id: '+ result, {module: 'createVirtualProxy'});
         var postPath =  "VirtualProxyConfig";
-        postPath +=  "?xrfkey=ABCDEFG123456789&privileges=true";
+        postPath +=  "?privileges=true";
 
         if(result !== undefined)
         {
@@ -69,10 +69,10 @@ function createVirtualProxy(body)
             ];
         }
 
-        qrs.Post(postPath,body)
+        qrs.Post(postPath,body,'json')
         .then(function(result)
         {
-            x.virtualProxy = JSON.parse(result);
+            x.virtualProxy = JSON.parse(JSON.stringify(result.body));
             //logger.debug('Result from Server::' + JSON.stringify(JSON.parse(result)), {module: 'createVirtualProxy'});
             logger.info('Virtual Proxy created', {module: 'createVirtualProxy'});
             logger.debug('Virtual Proxy id: ' + x.virtualProxy.id, {module:'createVirtualProxy'});
@@ -82,19 +82,17 @@ function createVirtualProxy(body)
         {
             //get the proxy to set link up virtualproxy
             var proxyPath = "proxyservice/local";
-            proxyPath +=  "?xrfkey=ABCDEFG123456789";
             logger.debug('proxyPath:: ' + proxyPath,{module: 'createVirtualProxy'});
             qrs.Get(proxyPath)
             .then(function(result)
             {
-                x.proxyID = result.id;
-                logger.debug('The proxy service id is: ' + result.id, {module: 'createVirtualProxy'});
-                return result.id;
+                x.proxyID = result.body.id;
+                logger.debug('The proxy service id is: ' + result.body.id, {module: 'createVirtualProxy'});
+                return result.body.id;
             })
             .then(function(proxyID)
             {
                 var selectionPath = "selection";
-                selectionPath +=  "?xrfkey=ABCDEFG123456789";
                 logger.debug('selectionPath::' + selectionPath, {module: 'createVirtualProxy'});
                 var selectionBody = {
                     "items": [
@@ -105,18 +103,17 @@ function createVirtualProxy(body)
                     ]
                 };
                 logger.debug('selectionBody:' + JSON.stringify(selectionBody), {module: 'createVirtualProxy'});
-                qrs.Post(selectionPath,selectionBody)
+                qrs.Post(selectionPath,selectionBody,'json')
                 .then(function(result)
                 {
-                    x.Selection = JSON.parse(result);
-                    logger.debug('selectionID::' + result.id, {module: 'createVirtualProxy'});
+                    x.Selection = JSON.parse(JSON.stringify(result.body));
+                    logger.debug('selectionID::' + result.body.id, {module: 'createVirtualProxy'});
                     return x.Selection.id
                 })
                 .then(function(selectionID)
                 {
                     var putPath = "selection";
                     putPath += "/" + selectionID + "/ProxyService/synthetic";
-                    putPath +=  "?xrfkey=ABCDEFG123456789";
                     logger.debug('putPath::' + putPath, {module: 'createVirtualProxy'});
                     logger.debug('virtual proxy id::' + x.virtualProxy.id, {module:'createVirtualProxy'});
                     var putBody = {

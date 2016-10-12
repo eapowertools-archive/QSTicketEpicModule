@@ -28,13 +28,13 @@ process.argv.forEach(function (val, index, array) {
 logger.info('Checking for existence of ' + process.argv[2] + ' on port ' + process.argv[3], {module: 'checkHostName.js'});
 
 var path = "ServiceStatus/full";
-    path +=  "?xrfkey=ABCDEFG123456789";
+
 
 qrs.Get(path)
 .then(function(result)
 {
     //console.log(result);
-    fs.writeFileSync(config.thisServer.utilsPath + '\\checkHostName.txt', 'true');
+    fs.writeFileSync(__dirname + '/checkHostName.txt', 'true');
 })
 .catch(function(error)
 {
