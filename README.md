@@ -4,14 +4,14 @@
 # QSTicketEpicModule
 Qlik Sense Ticket API module for use with Epic Hyperspace implementations
 
-To install the solution, navigate to here: **[QSTicketEpicModule.exe](https://s3.amazonaws.com/eapowertools/qsticketepicmodule/QSTicketEpicModule_Setup.exe)**
+To install the solution, navigate to here: **[QSTicketEpicModule.exe](https://github.com/eapowertools/QSTicketEpicModule/releases/download/1.0.0.0/QSTicketEpicModule_Setup.exe)**
 
 ##Requirements
 - Qlik Sense Enterprise Server 2.2.4 and above
 - Epic Hyperspace 2015 (version 8.2)
 
 ##Installation
-1. Download the installer from here: **[QSTicketEpicModule.exe](https://s3.amazonaws.com/eapowertools/qsticketepicmodule/QSTicketEpicModule_Setup.exe)**.
+1. Download the installer from here: **[QSTicketEpicModule.exe](https://github.com/eapowertools/QSTicketEpicModule/releases/download/1.0.0.0/QSTicketEpicModule_Setup.exe)**.
 
 2. Run the installer with administrator privileges.    
 
